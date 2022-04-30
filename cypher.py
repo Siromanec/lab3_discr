@@ -1,10 +1,13 @@
+from pprint import pprint
 import random
 from modexp import modexp
 import string
 import time
+
 class RSA_Message():
     def __init__(self, msg: str) -> None:
         self.PRIMES = self.eratosthenes(1000)
+        self.enumerate_chars()
         self.gen_keys()
         self.msg = msg
         self.encoded_msg = self.encode(msg)
@@ -76,7 +79,7 @@ class RSA_Message():
         """
         :param str l: letter
         """
-        print(str(ord(l)).rjust(4, "0"))
+        ord_num = self.chars_code_dict[l]
         pass
     def gen_keys(self):
         """
@@ -96,9 +99,21 @@ class RSA_Message():
         
         return self.d
 
+    def enumerate_chars(self):
+        """
+        enumerates the symbols
+        supports latin, german, cyrillic
+        three symbols per each character
+        """
 
-        
-        pass
+        cyrillic = "абвгґдееєжзиіїйклмнопрстуфхцчшщьюяэъыё"
+        special_chars = "0123456789-=`~!@#$%^&*()_+,./;\'\\[]<>?:\"|{} \t№§\n"
+
+        chars = special_chars + string.ascii_letters + "üäößÜÄÖ" + cyrillic + cyrillic.upper()
+
+        chars_code = zip([i for i in chars], [str(j).rjust(3, "0") for j in range(182)])
+
+        self.chars_code_dict = dict(chars_code)
 
 msg = RSA_Message("hi")
 #print(msg.eratosthenes(1000))
@@ -107,11 +122,8 @@ print(msg.rand_prime())
 msg.gen_relative_primes(3222)
 msg.gen_keys()
 msg.gen_M("a")
-print(string.ascii_letters)
-cyrillic = "абвгґдееєжзиіїйклмнопрстуфхцчшщьюя"
-print(cyrillic + cyrillic.upper())
-special_chars = "0123456789-=`~!@#$%^&*()_+,./;\'\\[]<>?:\"|{} \n\t"
-print(ord("z"))
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
