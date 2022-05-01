@@ -1,6 +1,7 @@
 import socket
 import threading
 import RSA
+import hashlib
 
 
 class Server:
@@ -15,7 +16,8 @@ class Server:
 
         # generate keys ...
         try:
-            print("Generating server keys...")
+            print("Generating server keys...", end="")
+            print("Done!\n")
             self.n_key, self.e_key, self.d_key = RSA.gen_keys()
             self.public_server_keys_msg = str(self.n_key) + " " + str(self.e_key)
         except Exception as e:
@@ -38,7 +40,7 @@ class Server:
                 # send public key to the client
 
                 print("Sending keys to {}".format(self.username_lookup[c]))
-                c.send(self.public_server_keys_msg.encode())
+                c.sendall(self.public_server_keys_msg.encode())
                 print("Public keys to {} sent!".format(self.username_lookup[c]))
                 # ...
                 public_client_keys_msg = c.recv(1024).decode()
@@ -62,22 +64,41 @@ class Server:
                 print("Safe connection established!\n")
 
     def broadcast(self, msg: str):
-        if not isinstance(msg, str):
-            msg = RSA.decode(msg.decode(), self.n_key, self.d_key)
-        for client in self.clients: 
-
+        msg_hash = hashlib.sha3_512(msg.encode()).hexdigest()
+        for client in self.clients:
             # encrypt the message
             encoded_msg = RSA.encode(msg, self.users_keys[client][0], self.users_keys[client][1])
-            client.send(encoded_msg.encode())
+            packed_message = " ".join((msg_hash, encoded_msg))
+            client.sendall(packed_message.encode())
 
     def handle_client(self, c: socket, addr):
-        while True:
-            msg = c.recv(1024).decode()
-            msg = RSA.decode(msg, self.n_key, self.d_key)
-            for client in self.clients:
-                encoded_msg = RSA.encode(msg, self.users_keys[client][0], self.users_keys[client][1])
-                if client != c:
-                    client.send(encoded_msg.encode())
+        try:
+            while True:
+                packed_message = c.recv(1024).decode()
+                try:
+                    space = packed_message.find(" ")
+                except Exception:
+                    print("Received corrupted message!")
+                    continue
+                hash, message = packed_message[:space], packed_message[space + 1:]
+
+                # decrypt message with the secrete key
+                msg = RSA.decode(message, self.n_key, self.d_key)
+
+                if not hashlib.sha3_512(msg.encode()).hexdigest() == hash:
+                    print("Received corrupted message: {}".format(message))
+
+                msg_hash = hashlib.sha3_512(msg.encode()).hexdigest()
+                for client in self.clients:
+                    if client != c:
+                        encoded_msg = RSA.encode(msg, self.users_keys[client][0], self.users_keys[client][1])
+                        packed_message = " ".join((msg_hash, encoded_msg))
+                        client.sendall(packed_message.encode())
+        except WindowsError as e:
+            print(str(e)+": " + self.username_lookup[c])
+            self.clients.remove(c)
+        finally:
+            print("Thread closes...")
 
 
 if __name__ == "__main__":

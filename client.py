@@ -2,6 +2,7 @@ import socket
 import sys
 import threading
 import RSA
+import hashlib
 
 
 class Client:
@@ -25,7 +26,7 @@ class Client:
             return
 
         try:
-            self.s.send(self.username.encode())
+            self.s.sendall(self.username.encode())
 
             # exchange public keys
             msg = self.s.recv(1024).decode()
@@ -33,7 +34,7 @@ class Client:
             print("Received server public keys: {}, {}!".format(self.server_n_key, self.server_e_key))
 
             print("Sending public client keys to the server...")
-            self.s.send(self.public_client_keys_msg.encode())
+            self.s.sendall(self.public_client_keys_msg.encode())
 
         except Exception as e:
             self.s.send("Not OK!".encode())
@@ -56,23 +57,32 @@ class Client:
         input_handler = threading.Thread(target=self.write_handler,args=())
         input_handler.start()
 
-    def read_handler(self): 
+    def read_handler(self):
         while True:
-            message = self.s.recv(1024).decode()
+            packed_message = self.s.recv(1024).decode()
+            try:
+                space = packed_message.find(" ")
+            except Exception:
+                print("Received corrupted message!")
+                continue
+            hash, message = packed_message[:space], packed_message[space+1:]
 
             # decrypt message with the secrete key
             message = RSA.decode(message, self.n_key, self.d_key)
+
+            if not hashlib.sha3_512(message.encode()).hexdigest() == hash:
+                print("Received corrupted message: {}".format(message))
 
             print(message)
 
     def write_handler(self):
         while True:
             message = input()
-
+            message_hash = hashlib.sha3_512(message.encode()).hexdigest()
             # encrypt message with the secrete key
             message = RSA.encode(message, self.server_n_key, self.server_e_key)
-
-            self.s.send(message.encode())
+            packed_message = " ".join((message_hash, message))
+            self.s.sendall(packed_message.encode())
 
 
 if __name__ == "__main__":
