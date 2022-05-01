@@ -1,3 +1,4 @@
+"""Module with client instance for messaging"""
 import socket
 import sys
 import threading
@@ -6,7 +7,9 @@ import hashlib
 
 
 class Client:
+    """Client instance"""
     def __init__(self, server_ip: str, port: int, username: str) -> None:
+        """Client initialisation"""
         self.server_ip = server_ip
         self.port = port
         self.username = username
@@ -17,6 +20,7 @@ class Client:
         self.public_client_keys_msg = str(self.n_key) + " " + str(self.e_key)
 
     def init_connection(self):
+        """Initiating connection"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
@@ -58,6 +62,7 @@ class Client:
         input_handler.start()
 
     def read_handler(self):
+        """Receiving messages"""
         while True:
             packed_message = self.s.recv(1024).decode()
             try:
@@ -76,6 +81,7 @@ class Client:
             print(message)
 
     def write_handler(self):
+        """Sending messages"""
         while True:
             message = input()
             message_hash = hashlib.sha3_512(message.encode()).hexdigest()

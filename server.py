@@ -1,3 +1,4 @@
+"""Module with server instance for messaging"""
 import socket
 import threading
 import RSA
@@ -5,8 +6,9 @@ import hashlib
 
 
 class Server:
-
+    """Server instance"""
     def __init__(self, port: int) -> None:
+        """Server initialisation"""
         self.host = '127.0.0.1'
         self.port = port
         self.clients = []
@@ -24,6 +26,7 @@ class Server:
             print(e)
 
     def start(self):
+        """Starts new connections"""
         self.s.bind((self.host, self.port))
         self.s.listen(100)
 
@@ -64,6 +67,7 @@ class Server:
                 print("Safe connection established!\n")
 
     def broadcast(self, msg: str):
+        """Broadcasts to all clients"""
         msg_hash = hashlib.sha3_512(msg.encode()).hexdigest()
         for client in self.clients:
             # encrypt the message
@@ -72,6 +76,7 @@ class Server:
             client.sendall(packed_message.encode())
 
     def handle_client(self, c: socket, addr):
+        """Receives message from client and sends it to others"""
         try:
             while True:
                 packed_message = c.recv(1024).decode()
