@@ -10,11 +10,11 @@ class Server:
         self.port = port
         self.clients = []
         self.username_lookup = {}
+        self.users_keys = {}
         self.s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
         # generate keys ...
         try:
-
             print("Generating server keys...")
             self.n_key, self.e_key, self.d_key = RSA.gen_keys()
             self.public_server_keys_msg = str(self.n_key) + " " + str(self.e_key)
@@ -36,25 +36,15 @@ class Server:
                 self.clients.append(c)
 
                 # send public key to the client
+
                 print("Sending keys to {}".format(self.username_lookup[c]))
                 c.send(self.public_server_keys_msg.encode())
                 print("Public keys to {} sent!".format(self.username_lookup[c]))
                 # ...
-                while True:
-                    public_client_keys_msg = c.recv(1024).decode()
-                    if public_client_keys_msg:
-                        client_n, client_e = map(int, public_client_keys_msg.split())
-                        break
+                public_client_keys_msg = c.recv(1024).decode()
+                client_n, client_e = map(int, public_client_keys_msg.split())
                 print("Client {} public keys received!".format(self.username_lookup[c]))
-
-                # encrypt the secret with the clients public key
-
-                encrypted_d_key = RSA.encode(str(self.d_key), client_n, client_e)
-
-                # send the encrypted secret to a client
-
-                print("Sending encrypted secret key to client {}!".format(self.username_lookup[c]))
-                c.send(encrypted_d_key.encode())
+                self.users_keys[c] = (client_n, client_e)
 
                 # final check
                 if c.recv(1024).decode() != "OK!":
@@ -72,20 +62,22 @@ class Server:
                 print("Safe connection established!\n")
 
     def broadcast(self, msg: str):
+        if not isinstance(msg, str):
+            msg = RSA.decode(msg.decode(), self.n_key, self.d_key)
         for client in self.clients: 
 
             # encrypt the message
-            msg = RSA.encode(msg, self.n_key, self.e_key)
-            # ...
-
-            client.send(msg.encode())
+            encoded_msg = RSA.encode(msg, self.users_keys[client][0], self.users_keys[client][1])
+            client.send(encoded_msg.encode())
 
     def handle_client(self, c: socket, addr):
         while True:
-            msg = c.recv(1024)
+            msg = c.recv(1024).decode()
+            msg = RSA.decode(msg, self.n_key, self.d_key)
             for client in self.clients:
+                encoded_msg = RSA.encode(msg, self.users_keys[client][0], self.users_keys[client][1])
                 if client != c:
-                    client.send(msg)
+                    client.send(encoded_msg.encode())
 
 
 if __name__ == "__main__":

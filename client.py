@@ -1,7 +1,7 @@
 import socket
 import sys
 import threading
-import RSA  # change on the real lib, when finished!
+import RSA
 
 
 class Client:
@@ -35,10 +35,6 @@ class Client:
             print("Sending public client keys to the server...")
             self.s.send(self.public_client_keys_msg.encode())
 
-            # receive the encrypted secret key
-            self.server_d_key = int(RSA.decode(self.s.recv(1024).decode(), self.n_key, self.d_key))
-            print("Received server secret key!")
-
         except Exception as e:
             self.s.send("Not OK!".encode())
             print(e)
@@ -55,8 +51,6 @@ class Client:
                 response = input()
                 sys.exit()
 
-        print("Server secret key: {}".format(self.server_d_key))
-
         message_handler = threading.Thread(target=self.read_handler,args=())
         message_handler.start()
         input_handler = threading.Thread(target=self.write_handler,args=())
@@ -67,7 +61,7 @@ class Client:
             message = self.s.recv(1024).decode()
 
             # decrypt message with the secrete key
-            message = RSA.decode(message, self.server_n_key, self.server_d_key)
+            message = RSA.decode(message, self.n_key, self.d_key)
 
             print(message)
 
