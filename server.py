@@ -1,6 +1,6 @@
 import socket
 import threading
-import fake_rsa
+import RSA
 
 
 class Server:
@@ -13,10 +13,13 @@ class Server:
         self.s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
         # generate keys ...
+        try:
 
-        print("Generating server keys...")
-        self.n_key, self.e_key, self.d_key = fake_rsa.generate_keys()
-        self.public_server_keys_msg = str(self.n_key) + " " + str(self.e_key)
+            print("Generating server keys...")
+            self.n_key, self.e_key, self.d_key = RSA.gen_keys()
+            self.public_server_keys_msg = str(self.n_key) + " " + str(self.e_key)
+        except Exception as e:
+            print(e)
 
     def start(self):
         self.s.bind((self.host, self.port))
@@ -40,13 +43,13 @@ class Server:
                 while True:
                     public_client_keys_msg = c.recv(1024).decode()
                     if public_client_keys_msg:
-                        client_n, client_d = public_client_keys_msg.split()
+                        client_n, client_e = map(int, public_client_keys_msg.split())
                         break
                 print("Client {} public keys received!".format(self.username_lookup[c]))
 
                 # encrypt the secret with the clients public key
 
-                encrypted_d_key = fake_rsa.encode(self.d_key, client_n, client_d)
+                encrypted_d_key = RSA.encode(str(self.d_key), client_n, client_e)
 
                 # send the encrypted secret to a client
 
@@ -72,7 +75,7 @@ class Server:
         for client in self.clients: 
 
             # encrypt the message
-            msg = fake_rsa.encode(msg, self.n_key, self.e_key)
+            msg = RSA.encode(msg, self.n_key, self.e_key)
             # ...
 
             client.send(msg.encode())
@@ -80,7 +83,6 @@ class Server:
     def handle_client(self, c: socket, addr):
         while True:
             msg = c.recv(1024)
-
             for client in self.clients:
                 if client != c:
                     client.send(msg)

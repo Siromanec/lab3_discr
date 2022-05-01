@@ -1,7 +1,7 @@
 import socket
 import sys
 import threading
-import fake_rsa  # change on the real lib, when finished!
+import RSA  # change on the real lib, when finished!
 
 
 class Client:
@@ -12,7 +12,7 @@ class Client:
 
         # create key pairs
 
-        self.n_key, self.e_key, self.d_key = fake_rsa.generate_keys()
+        self.n_key, self.e_key, self.d_key = RSA.gen_keys()
         self.public_client_keys_msg = str(self.n_key) + " " + str(self.e_key)
 
     def init_connection(self):
@@ -29,15 +29,14 @@ class Client:
 
             # exchange public keys
             msg = self.s.recv(1024).decode()
-            self.server_n_key, self.server_e_key = msg.split()
+            self.server_n_key, self.server_e_key = map(int, msg.split())
             print("Received server public keys: {}, {}!".format(self.server_n_key, self.server_e_key))
 
             print("Sending public client keys to the server...")
             self.s.send(self.public_client_keys_msg.encode())
 
             # receive the encrypted secret key
-            self.server_d_key = fake_rsa.decode(self.s.recv(1024).decode(), self.d_key)
-            self.server_d_key = "d_key"
+            self.server_d_key = int(RSA.decode(self.s.recv(1024).decode(), self.n_key, self.d_key))
             print("Received server secret key!")
 
         except Exception as e:
@@ -68,7 +67,7 @@ class Client:
             message = self.s.recv(1024).decode()
 
             # decrypt message with the secrete key
-            message = fake_rsa.decode(message, self.server_d_key)
+            message = RSA.decode(message, self.server_n_key, self.server_d_key)
 
             print(message)
 
@@ -77,7 +76,7 @@ class Client:
             message = input()
 
             # encrypt message with the secrete key
-            message = fake_rsa.encode(message, self.server_n_key, self.server_e_key)
+            message = RSA.encode(message, self.server_n_key, self.server_e_key)
 
             self.s.send(message.encode())
 
