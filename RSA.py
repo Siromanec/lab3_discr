@@ -147,28 +147,44 @@ def eratosthenes(n):
     return prime_list[82:]
 
 
-def rand_prime(n_range=10000):
-    # n_range not bigger than 13000
-    primes = eratosthenes(n_range)
+PRIMES = eratosthenes(100000)
+
+
+def rand_prime(n_range=100000):
+    if n_range == 100000:
+        primes = PRIMES
+    else:
+        primes = eratosthenes(n_range)
+
     return random.choices(primes, k=2)  # change if random cant be used
 
 
-def gen_keys():
+def gen_keys(n_range=100000):
     """
     key generator
     """
-    # step 1
-    p, q = rand_prime()
-    # step 2
-    n = p * q
-    # step 3
-    product = (p - 1) * (q - 1)
-    relative_primes = gen_relative_primes(product)
-    e = random.choice(relative_primes)
-    # step 4
-    d = pow(e, -1, product)
-    # print("secret key: {}".format(d))
-    return n, e, d
+    while True:
+        # step 1
+        p, q = rand_prime(n_range)
+        # step 2
+        n = p * q
+        # step 3
+        product = (p - 1) * (q - 1)
+        relative_primes = gen_relative_primes(product)
+        e = random.choice(relative_primes)
+        # step 4
+        d = pow(e, -1, product)
+        # print("secret key: {}".format(d))
+        try:
+            msg = "Test"
+            encoded = encode(msg, n, e)
+            decoded = decode(encoded, n, d)
+            if decoded != msg:
+                raise TypeError()
+        except Exception:
+            continue
+        else:
+            return n, e, d
 
 
 if __name__ == "__main__":
@@ -181,5 +197,5 @@ if __name__ == "__main__":
             if decoded != msg:
                 print(decoded)
         except KeyError:
-            print(n)
+            print(n, e, d)
 
