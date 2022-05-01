@@ -11,11 +11,13 @@ def modexp(b: int, n: int, m: int):
     """
     x = 1
     i = 0
+
     power = b % m
     n_bin = bin(n)
     n_bin = str(n_bin)
     n_bin = n_bin[2:]
     n_bin = n_bin[::-1]
+
     for a in n_bin:
         #print(f"i = {i}, a = {a},", end=" ")
         if a  == "1":
@@ -28,14 +30,7 @@ def modexp(b: int, n: int, m: int):
         power = power * power % m
         #print(power)
         i += 1
+
     return x #f"{b} ** {n} mod {m} = {x}"
-#start = time()
-#result = modexp1(10000000, 10000000, 10000000)
-#end = time() - start
-#print(f"modexp1 finished in {end} s.")
-#start = time()
-#result = modexp(12, 1743, 25)
-#end = time() - start
-#print(result)
-#print(f"modexp2 finished in {end} s.")
+
 
